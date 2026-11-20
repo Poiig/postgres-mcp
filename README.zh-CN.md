@@ -27,6 +27,7 @@
 | streamable-http 会话内存涨 | [PR #217](https://github.com/crystaldba/postgres-mcp/pull/217) | 可选 `--stateless-http` |
 | allowlist 缺 `timezone()` | [PR #209](https://github.com/crystaldba/postgres-mcp/pull/209) | 已加入 `ALLOWED_FUNCTIONS` |
 | 宽表索引候选过滤过慢 | [PR #240](https://github.com/crystaldba/postgres-mcp/pull/240) | 先按查询条件过滤再做 `_index_exists` |
+| 仅支持环境变量传连接串 | [PR #222](https://github.com/crystaldba/postgres-mcp/pull/222) | 可用 `DATABASE_URI_FILE` 读挂载的 secret 文件 |
 | 中文说明 | 无 | 本文档 |
 
 ## 功能概览
@@ -127,6 +128,15 @@ Agent 读到的网页、工单、邮件内容可能带提示注入；在 `unrest
 uv run postgres-mcp "$DATABASE_URI" --access-mode=restricted --max-rows=1000
 # 不限制（仅在明确需要时）：
 uv run postgres-mcp "$DATABASE_URI" --access-mode=restricted --max-rows=0
+```
+
+也可用挂载文件提供连接串（适合 Docker/K8s secret）；与 `DATABASE_URI` 同时存在时以环境变量为准：
+
+```bash
+docker run -i --rm \
+  -v /path/to/database-uri:/run/secrets/database-uri:ro \
+  -e DATABASE_URI_FILE=/run/secrets/database-uri \
+  crystaldba/postgres-mcp --access-mode=restricted
 ```
 
 ## 可选扩展

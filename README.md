@@ -41,6 +41,7 @@ Upstream last shipped a formal release in May 2025. This fork keeps the same pro
 | Streamable HTTP session memory growth | [PR #217](https://github.com/crystaldba/postgres-mcp/pull/217) | Opt-in `--stateless-http` |
 | `timezone()` missing from allowlist | [PR #209](https://github.com/crystaldba/postgres-mcp/pull/209) | Added to `ALLOWED_FUNCTIONS` |
 | Index candidate filtering too slow on wide tables | [PR #240](https://github.com/crystaldba/postgres-mcp/pull/240) | Filter by query conditions before `_index_exists` |
+| Secrets via env only (awkward in K8s/Docker) | [PR #222](https://github.com/crystaldba/postgres-mcp/pull/222) | `DATABASE_URI_FILE` reads a mounted secret file |
 | Chinese docs | — | See [README.zh-CN.md](README.zh-CN.md) |
 
 ## Overview
@@ -251,6 +252,17 @@ Postgres MCP Pro supports multiple *access modes* to give you control over the o
 
 Restricted mode is the default in this fork. To allow writes, pass `--access-mode=unrestricted` explicitly.
 
+##### Database URI from a secret file
+
+You can also provide the URI through a mounted file by setting `DATABASE_URI_FILE`.
+If both `DATABASE_URI` and `DATABASE_URI_FILE` are set, `DATABASE_URI` takes precedence.
+
+```bash
+docker run -i --rm \
+  -v /path/to/database-uri:/run/secrets/database-uri:ro \
+  -e DATABASE_URI_FILE=/run/secrets/database-uri \
+  crystaldba/postgres-mcp --access-mode=restricted
+```
 
 #### Other MCP Clients
 
