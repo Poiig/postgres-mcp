@@ -243,14 +243,10 @@ class SqlDriver:
                 # For pools, get a connection from the pool
                 pool = await self.conn.pool_connect()
                 async with pool.connection() as connection:
-                    return await self._execute_with_connection(
-                        connection, query, params, force_readonly=force_readonly, max_rows=max_rows
-                    )
+                    return await self._execute_with_connection(connection, query, params, force_readonly=force_readonly, max_rows=max_rows)
             else:
                 # Direct connection approach
-                return await self._execute_with_connection(
-                    self.conn, query, params, force_readonly=force_readonly, max_rows=max_rows
-                )
+                return await self._execute_with_connection(self.conn, query, params, force_readonly=force_readonly, max_rows=max_rows)
         except Exception as e:
             # Mark pool as invalid if there was a connection issue
             if self.conn and self.is_pool:
@@ -261,9 +257,7 @@ class SqlDriver:
 
             raise e
 
-    async def _execute_with_connection(
-        self, connection, query, params, force_readonly, max_rows: int | None = None
-    ) -> Optional[List[RowResult]]:
+    async def _execute_with_connection(self, connection, query, params, force_readonly, max_rows: int | None = None) -> Optional[List[RowResult]]:
         """Execute query with the given connection."""
         transaction_started = False
         try:

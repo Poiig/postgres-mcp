@@ -454,10 +454,7 @@ async def execute_sql(
                     "rows": cells[:max_rows],
                     "truncated": True,
                     "max_rows": max_rows,
-                    "message": (
-                        f"Result truncated to {max_rows} rows. "
-                        "Add a LIMIT clause or raise --max-rows if you need more."
-                    ),
+                    "message": (f"Result truncated to {max_rows} rows. Add a LIMIT clause or raise --max-rows if you need more."),
                 }
             )
         return format_text_response(cells)
@@ -918,10 +915,7 @@ async def main():
             "read-only protection."
         )
     else:
-        logger.info(
-            "Running in restricted (read-only) mode. "
-            "Pass --access-mode=unrestricted for write access."
-        )
+        logger.info("Running in restricted (read-only) mode. Pass --access-mode=unrestricted for write access.")
 
     # Add the query tool with a description and annotations appropriate to the access mode
     if current_access_mode == AccessMode.UNRESTRICTED:

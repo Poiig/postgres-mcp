@@ -102,7 +102,7 @@ class OpsInsights:
                 pg_size_pretty(pg_total_relation_size(c.oid)) AS total_size
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE {' AND '.join(where)}
+            WHERE {" AND ".join(where)}
             ORDER BY pg_total_relation_size(c.oid) DESC
             LIMIT {{}}
             """,
@@ -249,7 +249,7 @@ class OpsInsights:
                 autovacuum_count,
                 autoanalyze_count
             FROM pg_stat_user_tables
-            WHERE {' AND '.join(where)}
+            WHERE {" AND ".join(where)}
               AND (n_live_tup + n_dead_tup) > {{}}
               AND CASE WHEN n_live_tup + n_dead_tup > 0
                        THEN n_dead_tup::float8 / (n_live_tup + n_dead_tup)
@@ -465,7 +465,7 @@ class OpsInsights:
             FROM pg_stat_user_indexes ui
             JOIN pg_index i ON i.indexrelid = ui.indexrelid
             LEFT JOIN pg_stat_user_tables ut ON ut.relid = ui.relid
-            WHERE {' AND '.join(where)}
+            WHERE {" AND ".join(where)}
             ORDER BY ui.idx_scan ASC, pg_relation_size(ui.indexrelid) DESC, ui.indexrelname
             LIMIT {{}}
             """,
@@ -532,7 +532,7 @@ class OpsInsights:
                    ROUND(EXTRACT(EPOCH FROM (now() - query_start))::numeric, 2) AS last_query_age_sec,
                    LEFT(query, 500) AS query
             FROM pg_stat_activity
-            WHERE {' AND '.join(where)}
+            WHERE {" AND ".join(where)}
             ORDER BY query_start NULLS LAST
             LIMIT {{}}
             """,

@@ -179,9 +179,7 @@ async def main() -> int:
                 if not ok:
                     # ToolError path may raise; if we got here, treat non-success payload as ok.
                     ok = True
-            elif name in ("list_qual_stats", "get_table_bloat") and (
-                "extension" in lower or "not installed" in lower or "required" in lower
-            ):
+            elif name in ("list_qual_stats", "get_table_bloat") and ("extension" in lower or "not installed" in lower or "required" in lower):
                 ok = True  # soft-ok: extension missing is an expected gated response
             else:
                 ok = "traceback" not in lower
@@ -196,9 +194,7 @@ async def main() -> int:
             if name == "execute_sql_write_blocked":
                 passed += 1
                 print(f"{'OK':4} {name:28} blocked: {_preview(msg)}")
-            elif name in ("list_qual_stats", "get_table_bloat") and (
-                "extension" in msg.lower() or "not installed" in msg.lower()
-            ):
+            elif name in ("list_qual_stats", "get_table_bloat") and ("extension" in msg.lower() or "not installed" in msg.lower()):
                 passed += 1
                 print(f"{'OK':4} {name:28} gated: {_preview(msg)}")
             else:

@@ -34,9 +34,7 @@ def _patch_explain_tool(**method_returns):
     tool = MagicMock()
     tool.explain = AsyncMock(return_value=method_returns.get("explain"))
     tool.explain_analyze = AsyncMock(return_value=method_returns.get("explain_analyze"))
-    tool.explain_with_hypothetical_indexes = AsyncMock(
-        return_value=method_returns.get("explain_with_hypothetical_indexes")
-    )
+    tool.explain_with_hypothetical_indexes = AsyncMock(return_value=method_returns.get("explain_with_hypothetical_indexes"))
     return patch("postgres_mcp.server.ExplainPlanTool", return_value=tool)
 
 

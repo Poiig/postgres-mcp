@@ -217,9 +217,7 @@ async def test_explain_select(safe_driver, mock_sql_driver, options, select_quer
 
     await safe_driver.execute_query(query)
 
-    mock_sql_driver.execute_query.assert_awaited_once_with(
-        "/* crystaldba */ " + query, params=None, force_readonly=True, max_rows=1000
-    )
+    mock_sql_driver.execute_query.assert_awaited_once_with("/* crystaldba */ " + query, params=None, force_readonly=True, max_rows=1000)
 
 
 @pytest.mark.asyncio
