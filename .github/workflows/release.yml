@@ -69,6 +69,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload dist for PyPI job
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/*
+
+  pypi:
+    needs: [prepare, python-artifacts]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      # PyPI Trusted Publisher（Pending）：
+      #   Owner=Poiig  Repo=postgresql-mcp-pro  Workflow=release.yml  Environment=空
+      #   Project name=postgresql-mcp-pro
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
