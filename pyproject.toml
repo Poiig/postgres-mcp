@@ -1,7 +1,7 @@
 [project]
-name = "postgres-mcp"
-version = "0.3.2"
-description = "PostgreSQL Tuning and Analysis Tool"
+name = "postgres-mcp-pro"
+version = "0.4.0"
+description = "Postgres MCP Pro: index tuning, explain plans, health checks, and safe SQL"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -18,15 +18,24 @@ license = "mit"
 license-files = ["LICENSE"]
 
 [[project.authors]]
-name = "Johann Schleier-Smith"
-email = "jssmith@crystal.cloud"
+name = "poiig"
+email = "poiigzhao@126.com"
+
+[project.urls]
+Homepage = "https://github.com/Poiig/postgres-mcp"
+Repository = "https://github.com/Poiig/postgres-mcp"
+Issues = "https://github.com/Poiig/postgres-mcp/issues"
 
 [build-system]
 requires = [ "hatchling",]
 build-backend = "hatchling.build"
 
 [project.scripts]
+postgres-mcp-pro = "postgres_mcp:main"
 postgres-mcp = "postgres_mcp:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/postgres_mcp"]
 
 # [tool.pyright]
 # venvPath = "."
@@ -85,7 +94,7 @@ convention = "google"
 
 [tool.ruff.lint.isort]
 force-single-line = true
-known-first-party = ["postgres-mcp"]
+known-first-party = ["postgres_mcp", "postgres-mcp-pro"]
 
 [tool.pyright]
 typeCheckingMode = "standard"

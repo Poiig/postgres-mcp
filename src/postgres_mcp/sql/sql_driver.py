@@ -123,6 +123,8 @@ class DbConnPool:
                 max_idle=60,  # seconds; release idle connections back to the server
                 open=False,  # Don't connect immediately, let's do it explicitly
                 reset=reset_pooled_connection,
+                # DISCARD ALL (and many poolers) break psycopg prepared statements
+                kwargs={"prepare_threshold": None},
             )
 
             # Open the pool explicitly

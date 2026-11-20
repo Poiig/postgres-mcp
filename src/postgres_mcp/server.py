@@ -23,12 +23,16 @@ from postgres_mcp.index.dta_calc import DatabaseTuningAdvisor
 
 from .artifacts import ErrorResult
 from .artifacts import ExplainPlanArtifact
+from .catalog_facts import facts_summary
+from .catalog_facts import load_database_facts
+from .catalog_facts import load_fk_facts
 from .database_health import DatabaseHealthTool
 from .database_health import HealthType
 from .explain import ExplainPlanTool
 from .index.index_opt_base import MAX_NUM_INDEX_TUNING_QUERIES
 from .index.llm_opt import LLMOptimizerTool
 from .index.presentation import TextPresentation
+from .ops_insights import OpsInsights
 from .sql import DbConnPool
 from .sql import SafeSqlDriver
 from .sql import SqlDriver
@@ -37,7 +41,7 @@ from .sql import obfuscate_password
 from .top_queries import TopQueriesCalc
 
 # Initialize FastMCP with default settings
-mcp = FastMCP("postgres-mcp")
+mcp = FastMCP("postgres-mcp-pro")
 
 # Constants
 PG_STAT_STATEMENTS = "pg_stat_statements"
@@ -558,6 +562,228 @@ async def analyze_db_health(
 
 
 @mcp.tool(
+    description="Database overview: schema/table counts, size, estimated rows, connections, largest tables",
+    annotations=ToolAnnotations(title="Get Database Overview", readOnlyHint=True),
+)
+async def get_database_overview() -> ResponseType:
+    try:
+        facts = await load_database_facts(await get_sql_driver())
+        return format_text_response({"summary": facts_summary(facts), "facts": facts})
+    except Exception as e:
+        logger.error(f"Error getting database overview: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Foreign-key relationship summary (cross-schema vs intra-schema) with a page of details",
+    annotations=ToolAnnotations(title="Analyze Schema Relationships", readOnlyHint=True),
+)
+@validate_call
+async def analyze_schema_relationships(
+    limit: int = Field(description="Max FK detail rows", default=100),
+) -> ResponseType:
+    try:
+        facts = await load_fk_facts(await get_sql_driver(), limit=limit)
+        return format_text_response(facts)
+    except Exception as e:
+        logger.error(f"Error analyzing schema relationships: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Top tables by total size; optionally list database sizes on the instance",
+    annotations=ToolAnnotations(title="List Relation Sizes", readOnlyHint=True),
+)
+@validate_call
+async def list_relation_sizes(
+    schema_name: str | None = Field(description="Limit to one schema", default=None),
+    limit: int = Field(description="Max tables to return", default=50),
+    include_databases: bool = Field(description="Also list database sizes", default=False),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_relation_sizes(
+            schema_name=schema_name,
+            limit=limit,
+            include_databases=include_databases,
+        )
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing relation sizes: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Find duplicate indexes (exact definition match, or shared leading column)",
+    annotations=ToolAnnotations(title="List Duplicate Indexes", readOnlyHint=True),
+)
+@validate_call
+async def list_duplicate_indexes(
+    schema_name: str | None = Field(description="Schema to scan", default="public"),
+    match: Literal["exact", "leading"] = Field(description="Match mode", default="exact"),
+    limit: int = Field(description="Max groups to return", default=100),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_duplicate_indexes(
+            schema_name=schema_name,
+            match=match,
+            limit=limit,
+        )
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing duplicate indexes: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Index usage from pg_stat_user_indexes; unused_only finds cold indexes on active tables",
+    annotations=ToolAnnotations(title="List Index Usage", readOnlyHint=True),
+)
+@validate_call
+async def list_index_usage(
+    schema_name: str | None = Field(description="Limit to schema", default=None),
+    table_name: str | None = Field(description="Limit to table", default=None),
+    unused_only: bool = Field(description="Only low-scan non-PK/unique indexes", default=False),
+    max_scans: int = Field(description="idx_scan threshold when unused_only", default=50),
+    require_table_activity: bool = Field(
+        description="When unused_only, require the table itself to have been scanned",
+        default=True,
+    ),
+    limit: int = Field(description="Max indexes to return", default=100),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_index_usage(
+            schema_name=schema_name,
+            table_name=table_name,
+            unused_only=unused_only,
+            max_scans=max_scans,
+            require_table_activity=require_table_activity,
+            limit=limit,
+        )
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing index usage: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Autovacuum settings, high dead-tuple tables, and recent cleanup activity",
+    annotations=ToolAnnotations(title="Get Autovacuum Info", readOnlyHint=True),
+)
+@validate_call
+async def get_autovacuum_info(
+    schema_name: str | None = Field(description="Limit to schema", default=None),
+    dead_ratio: float = Field(description="Minimum dead/(live+dead) ratio", default=0.2),
+    min_tuples: int = Field(description="Minimum live+dead tuples to consider", default=50),
+    limit: int = Field(description="Max tables per section", default=50),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).get_autovacuum_info(
+            schema_name=schema_name,
+            dead_ratio=dead_ratio,
+            min_tuples=min_tuples,
+            limit=limit,
+        )
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error getting autovacuum info: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Estimate bloat for one table (requires pgstattuple extension)",
+    annotations=ToolAnnotations(title="Get Table Bloat", readOnlyHint=True),
+)
+@validate_call
+async def get_table_bloat(
+    schema_name: str = Field(description="Schema name"),
+    table_name: str = Field(description="Table name"),
+    approx: bool = Field(description="Use pgstattuple_approx when true", default=True),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).get_table_bloat(
+            schema_name=schema_name,
+            table_name=table_name,
+            approx=approx,
+        )
+        if data.get("error", "").startswith("extension_required:"):
+            return format_error_response(data.get("message") or str(data))
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error getting table bloat: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="WHERE/JOIN predicate stats and index suggestions (requires pg_qualstats)",
+    annotations=ToolAnnotations(title="List Qual Stats", readOnlyHint=True),
+)
+@validate_call
+async def list_qual_stats(
+    limit: int = Field(description="Max predicates / suggestions", default=50),
+    min_filter: int = Field(description="Min filter count for index advisor", default=50),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_qual_stats(limit=limit, min_filter=min_filter)
+        if data.get("error", "").startswith("extension_required:"):
+            return format_error_response(data.get("message") or str(data))
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing qual stats: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Read key PostgreSQL settings from a fixed whitelist (memory, IO, autovacuum, etc.)",
+    annotations=ToolAnnotations(title="List Settings", readOnlyHint=True),
+)
+@validate_call
+async def list_settings(
+    names: list[str] | None = Field(description="Optional subset of whitelist names", default=None),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_settings(names=names)
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing settings: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Current activity snapshot from pg_stat_activity (running, waiting, or all)",
+    annotations=ToolAnnotations(title="List Active Queries", readOnlyHint=True),
+)
+@validate_call
+async def list_active_queries(
+    min_duration_seconds: float = Field(description="Minimum query age in seconds", default=0),
+    mode: Literal["running", "waiting", "all"] = Field(description="Session filter", default="running"),
+    limit: int = Field(description="Max sessions", default=50),
+) -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).list_active_queries(
+            min_duration_seconds=min_duration_seconds,
+            mode=mode,
+            limit=limit,
+        )
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error listing active queries: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
+    description="Current blocked/blocking query pairs via pg_blocking_pids",
+    annotations=ToolAnnotations(title="Get Blocking Queries", readOnlyHint=True),
+)
+async def get_blocking_queries() -> ResponseType:
+    try:
+        data = await OpsInsights(await get_sql_driver()).get_blocking_queries()
+        return format_text_response(data)
+    except Exception as e:
+        logger.error(f"Error getting blocking queries: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(
     name="get_top_queries",
     description=f"Reports the slowest or most resource-intensive queries using data from the '{PG_STAT_STATEMENTS}' extension.",
     annotations=ToolAnnotations(
@@ -630,7 +856,7 @@ async def main():
         type=str,
         choices=["stdio", "sse", "streamable-http"],
         default="stdio",
-        help="Select MCP transport: stdio (default), sse, or streamable-http",
+        help="MCP transport: stdio (default, local clients), streamable-http (preferred remote), or sse (legacy)",
     )
     parser.add_argument(
         "--sse-host",
@@ -659,7 +885,7 @@ async def main():
     parser.add_argument(
         "--stateless-http",
         action="store_true",
-        help="Serve streamable HTTP statelessly: retain no per-session server state, so sessions clients never DELETE cannot leak memory",
+        help="Recommended for streamable-http: no per-session server state (avoids memory growth when clients never DELETE)",
     )
     parser.add_argument(
         "--max-rows",

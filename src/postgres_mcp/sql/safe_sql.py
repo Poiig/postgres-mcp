@@ -542,6 +542,13 @@ class SafeSqlDriver(SqlDriver):
         "hypopg_get_indexdef",
         "hypopg_hide_index",
         "hypopg_unhide_index",
+        # Optional ops extensions (gated at call time)
+        "pgstattuple",
+        "pgstattuple_approx",
+        "pg_qualstats",
+        "pg_qualstats_pretty",
+        "pg_qualstats_index_advisor",
+        "pg_qualstats_reset",
         # XML Functions (read-only)
         "xml",
         "xmlcomment",

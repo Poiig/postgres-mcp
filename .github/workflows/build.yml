@@ -1,4 +1,4 @@
-name: Postgres MCP CI
+name: Postgres MCP Pro CI
 
 on:
   push:
@@ -6,13 +6,17 @@ on:
       - main
     paths-ignore:
       - "**/README.md"
+      - "**/README.en.md"
+      - "**/README.zh-CN.md"
   pull_request:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - "**/README.md"
+      - "**/README.en.md"
+      - "**/README.zh-CN.md"
 
 jobs:
-  postgres-mcp-ci:
+  postgres-mcp-pro-ci:
     runs-on: ubuntu-latest
 
     steps:
