@@ -3,14 +3,14 @@
 <img src="assets/postgres-mcp-pro.png" alt="Postgres MCP Pro Logo" width="600"/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PyPI - Version](https://img.shields.io/pypi/v/postgres-mcp)](https://pypi.org/project/postgres-mcp/)
 [![Discord](https://img.shields.io/discord/1336769798603931789?label=Discord)](https://discord.gg/4BEHC7ZM)
 [![Twitter Follow](https://img.shields.io/twitter/follow/auto_dba?style=flat)](https://x.com/auto_dba)
-[![Contributors](https://img.shields.io/github/contributors/crystaldba/postgres-mcp)](https://github.com/crystaldba/postgres-mcp/graphs/contributors)
+[English](README.md) · [中文文档](README.zh-CN.md)
 
 <h3>A Postgres MCP server with index tuning, explain plans, health checks, and safe sql execution.</h3>
 
 <div class="toc">
+  <a href="#fork-notes">Fork Notes</a> •
   <a href="#overview">Overview</a> •
   <a href="#demo">Demo</a> •
   <a href="#quick-start">Quick Start</a> •
@@ -21,6 +21,26 @@
 </div>
 
 </div>
+
+## Fork Notes
+
+This repository ([Poiig/postgres-mcp](https://github.com/Poiig/postgres-mcp)) is a maintained fork of **[crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp)** (Postgres MCP Pro by [Crystal DBA](https://www.crystaldba.ai)).
+
+Upstream last shipped a formal release in May 2025. This fork keeps the same product capabilities and applies practical fixes for day-to-day use:
+
+| Topic | Upstream issue / status | This fork |
+|-------|-------------------------|-----------|
+| `pglast` yanked from PyPI (`7.2` / `7.11`) breaks install | [crystaldba/postgres-mcp#237](https://github.com/crystaldba/postgres-mcp/issues/237) | Depends on `pglast>=7.20,<8` (resolves to a live 7.x release such as `7.24`) |
+| Default SQL access is read/write | Docs recommend `--access-mode=restricted` | **Default is `restricted`**; unrestricted mode logs a security warning |
+| Chinese docs | — | See [README.zh-CN.md](README.zh-CN.md) |
+
+Upstream context and related open work worth tracking:
+
+- [PR #238](https://github.com/crystaldba/postgres-mcp/pull/238) — allow `pglast>=7.20,<8`
+- [PR #193](https://github.com/crystaldba/postgres-mcp/pull/193) — default access mode to restricted
+- [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) — block dangerous functions in `FROM`
+- [Issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) — row-count limits in restricted mode
+- [Issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) — surface SQL failures via `isError`
 
 ## Overview
 
@@ -138,7 +158,7 @@ You will now edit the `mcpServers` section of the configuration file.
         "-e",
         "DATABASE_URI",
         "crystaldba/postgres-mcp",
-        "--access-mode=unrestricted"
+        "--access-mode=restricted"
       ],
       "env": {
         "DATABASE_URI": "postgresql://username:password@localhost:5432/dbname"
@@ -155,14 +175,18 @@ The Postgres MCP Pro Docker image will automatically remap the hostname `localho
 
 ##### If you are using `uvx`
 
+Prefer installing from this fork (or any checkout that includes the `pglast` fix). Upstream PyPI `0.3.0` still pins a yanked `pglast` and may fall back to `0.1.0`.
+
 ```json
 {
   "mcpServers": {
     "postgres": {
       "command": "uvx",
       "args": [
+        "--from",
+        "git+https://github.com/Poiig/postgres-mcp",
         "postgres-mcp",
-        "--access-mode=unrestricted"
+        "--access-mode=restricted"
       ],
       "env": {
         "DATABASE_URI": "postgresql://username:password@localhost:5432/dbname"
@@ -181,7 +205,7 @@ The Postgres MCP Pro Docker image will automatically remap the hostname `localho
     "postgres": {
       "command": "postgres-mcp",
       "args": [
-        "--access-mode=unrestricted"
+        "--access-mode=restricted"
       ],
       "env": {
         "DATABASE_URI": "postgresql://username:password@localhost:5432/dbname"
@@ -202,7 +226,7 @@ The Postgres MCP Pro Docker image will automatically remap the hostname `localho
       "args": [
         "run",
         "postgres-mcp",
-        "--access-mode=unrestricted"
+        "--access-mode=restricted"
       ],
       "env": {
         "DATABASE_URI": "postgresql://username:password@localhost:5432/dbname"
@@ -221,10 +245,10 @@ Replace `postgresql://...` with your [Postgres database connection URI](https://
 ##### Access Mode
 
 Postgres MCP Pro supports multiple *access modes* to give you control over the operations that the AI agent can perform on the database:
-- **Unrestricted Mode**: Allows full read/write access to modify data and schema. It is suitable for development environments.
-- **Restricted Mode**: Limits operations to read-only transactions and imposes constraints on resource utilization (presently only execution time). It is suitable for production environments.
+- **Restricted Mode (default)**: Limits operations to read-only transactions and imposes constraints on resource utilization (presently only execution time). Prefer this for shared or production-like databases.
+- **Unrestricted Mode**: Allows full read/write access to modify data and schema. Suitable only for trusted development databases. Startup logs a security warning because prompt-injection payloads can reach `execute_sql`.
 
-To use restricted mode, replace `--access-mode=unrestricted` with `--access-mode=restricted` in the configuration examples above.
+Restricted mode is the default in this fork. To allow writes, pass `--access-mode=unrestricted` explicitly.
 
 
 #### Other MCP Clients
@@ -246,7 +270,7 @@ For example, with Docker run:
 ```bash
 docker run -p 8000:8000 \
   -e DATABASE_URI=postgresql://username:password@localhost:5432/dbname \
-  crystaldba/postgres-mcp --access-mode=unrestricted --transport=sse
+  crystaldba/postgres-mcp --access-mode=restricted --transport=sse
 ```
 
 Then update your MCP client configuration to call the the MCP server.
@@ -408,15 +432,18 @@ Our testing presently focuses on Postgres 15, 16, and 17.
 We plan to support Postgres versions 13 through 17.
 
 *Who created this project?*
-This project is created and maintained by [Crystal DBA](https://www.crystaldba.ai).
+The original project was created and maintained by [Crystal DBA](https://www.crystaldba.ai) at [crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp).
+This fork is maintained at [Poiig/postgres-mcp](https://github.com/Poiig/postgres-mcp).
 
 ## Roadmap
 
-*TBD*
+Fork focus areas:
 
-You and your needs are a critical driver for what we build.
-Tell us what you want to see by opening an [issue](https://github.com/crystaldba/postgres-mcp/issues) or a [pull request](https://github.com/crystaldba/postgres-mcp/pulls).
-You can also contact us on [Discord](https://discord.gg/4BEHC7ZM).
+- Keep installs working when upstream pins disappear from PyPI
+- Safer defaults (`restricted` access mode)
+- Chinese documentation and practical Cursor / uvx setup notes
+
+Upstream feature requests and security hardening continue to live in the [original issue tracker](https://github.com/crystaldba/postgres-mcp/issues).
 
 ## Technical Notes
 
@@ -634,9 +661,11 @@ The instructions below are for developers who want to work on Postgres MCP Pro, 
 2. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/crystaldba/postgres-mcp.git
+   git clone https://github.com/Poiig/postgres-mcp.git
    cd postgres-mcp
    ```
+
+   Upstream mirror for reference: `https://github.com/crystaldba/postgres-mcp.git`
 
 3. **Install dependencies**:
 
@@ -645,7 +674,9 @@ The instructions below are for developers who want to work on Postgres MCP Pro, 
    uv sync
    ```
 
-4. **Run the server**:
+4. **Run the server** (restricted / read-only by default):
    ```bash
    uv run postgres-mcp "postgres://user:password@localhost:5432/dbname"
+   # or explicitly:
+   uv run postgres-mcp "postgres://user:password@localhost:5432/dbname" --access-mode=restricted
    ```
