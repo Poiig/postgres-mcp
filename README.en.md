@@ -8,8 +8,8 @@
 <p>Index tuning · Explain plans · Health checks · Safe SQL · Ops insights</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgres-mcp)](https://github.com/Poiig/postgres-mcp/releases)
-[![GHCR](https://img.shields.io/badge/GHCR-postgres--mcp--pro-blue)](https://github.com/Poiig/postgres-mcp/pkgs/container/postgres-mcp-pro)
+[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgres-mcp-pro)](https://github.com/Poiig/postgres-mcp-pro/releases)
+[![GHCR](https://img.shields.io/badge/GHCR-postgres--mcp--pro-blue)](https://github.com/Poiig/postgres-mcp-pro/pkgs/container/postgres-mcp-pro)
 
 </div>
 
@@ -44,7 +44,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then in C
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/Poiig/postgres-mcp",
+        "git+https://github.com/Poiig/postgres-mcp-pro",
         "postgres-mcp-pro",
         "--access-mode=restricted"
       ],
@@ -159,6 +159,6 @@ Produces GitHub Release assets and `ghcr.io/poiig/postgres-mcp-pro:<version>` / 
 
 - License: [MIT](LICENSE)
 - Upstream: [crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp)
-- This fork: [Poiig/postgres-mcp](https://github.com/Poiig/postgres-mcp)
+- This fork: [Poiig/postgres-mcp-pro](https://github.com/Poiig/postgres-mcp-pro)
 
 Chinese docs (default): [README.md](README.md).

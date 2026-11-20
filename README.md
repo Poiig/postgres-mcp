@@ -8,8 +8,8 @@
 <p>索引调优 · 执行计划 · 健康检查 · 安全 SQL · 运维洞察</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgres-mcp)](https://github.com/Poiig/postgres-mcp/releases)
-[![GHCR](https://img.shields.io/badge/GHCR-postgres--mcp--pro-blue)](https://github.com/Poiig/postgres-mcp/pkgs/container/postgres-mcp-pro)
+[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgres-mcp-pro)](https://github.com/Poiig/postgres-mcp-pro/releases)
+[![GHCR](https://img.shields.io/badge/GHCR-postgres--mcp--pro-blue)](https://github.com/Poiig/postgres-mcp-pro/pkgs/container/postgres-mcp-pro)
 
 </div>
 
@@ -57,7 +57,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/Poiig/postgres-mcp",
+        "git+https://github.com/Poiig/postgres-mcp-pro",
         "postgres-mcp-pro",
         "--access-mode=restricted"
       ],
@@ -247,6 +247,6 @@ git push origin v0.4.0
 
 - 许可证：[MIT](LICENSE)
 - 上游：[crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp)
-- 本仓库：[Poiig/postgres-mcp](https://github.com/Poiig/postgres-mcp)
+- 本仓库：[Poiig/postgres-mcp-pro](https://github.com/Poiig/postgres-mcp-pro)
 
 更细的英文说明见 [README.en.md](README.en.md)。

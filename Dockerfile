@@ -36,11 +36,11 @@ ENV PATH="/app/.venv/bin:$PATH"
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 LABEL org.opencontainers.image.description="Postgres MCP Pro - Multi-architecture container (${TARGETPLATFORM})"
-LABEL org.opencontainers.image.source="https://github.com/Poiig/postgres-mcp"
+LABEL org.opencontainers.image.source="https://github.com/Poiig/postgres-mcp-pro"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.vendor="Poiig"
 LABEL org.opencontainers.image.title="postgres-mcp-pro"
-LABEL org.opencontainers.image.url="https://github.com/Poiig/postgres-mcp"
+LABEL org.opencontainers.image.url="https://github.com/Poiig/postgres-mcp-pro"
 
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y \

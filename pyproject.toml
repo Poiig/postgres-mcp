@@ -22,9 +22,9 @@ name = "poiig"
 email = "poiigzhao@126.com"
 
 [project.urls]
-Homepage = "https://github.com/Poiig/postgres-mcp"
-Repository = "https://github.com/Poiig/postgres-mcp"
-Issues = "https://github.com/Poiig/postgres-mcp/issues"
+Homepage = "https://github.com/Poiig/postgres-mcp-pro"
+Repository = "https://github.com/Poiig/postgres-mcp-pro"
+Issues = "https://github.com/Poiig/postgres-mcp-pro/issues"
 
 [build-system]
 requires = [ "hatchling",]
