@@ -150,11 +150,12 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                 for combo in combinations(col_list, width):
                     candidates.append(IndexRecommendation(table=table, columns=tuple(combo)))
 
-        # filter out duplicates with existing indexes
-        filtered_candidates = [c for c in candidates if not self._index_exists(c, existing_defs)]
+        # Filter by query conditions before the expensive _index_exists check
+        filtered_candidates = [
+            c for c in self._filter_candidates_by_query_conditions(workload, candidates) if not self._index_exists(c, existing_defs)
+        ]
 
-        # filter out candidates with columns not used in query conditions
-        condition_filtered1 = self._filter_candidates_by_query_conditions(workload, filtered_candidates)
+        condition_filtered1 = filtered_candidates
 
         # filter out long text columns
         condition_filtered = await self._filter_long_text_columns(condition_filtered1)
@@ -163,18 +164,14 @@ class DatabaseTuningAdvisor(IndexTuningBase):
         self.dta_trace(f"Filtered to {len(filtered_candidates)} after removing existing indexes.")
         self.dta_trace(f"Filtered to {len(condition_filtered1)} after removing unused columns.")
         self.dta_trace(f"Filtered to {len(condition_filtered)} after removing long text columns.")
-        # Batch create all hypothetical indexes and store their size estimates
+        # Create + read sizes in one checkout so pool reset cannot drop HypoPG state
         if len(condition_filtered) > 0:
             query = "SELECT hypopg_create_index({});" * len(condition_filtered)
-            await SafeSqlDriver.execute_param_query(
+            query += "SELECT index_name, hypopg_relation_size(indexrelid) as index_size FROM hypopg_list_indexes;"
+            result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
                 query,
                 [idx.definition for idx in condition_filtered],
-            )
-
-            # Get estimated sizes without resetting indexes yet
-            result = await self.sql_driver.execute_query(
-                "SELECT index_name, hypopg_relation_size(indexrelid) as index_size FROM hypopg_list_indexes;"
             )
             if result is not None:
                 index_map = {r.cells["index_name"]: r.cells["index_size"] for r in result}

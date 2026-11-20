@@ -478,6 +478,7 @@ class SafeSqlDriver(SqlDriver):
         "now",
         "statement_timestamp",
         "timeofday",
+        "timezone",
         "transaction_timestamp",
         # Additional Type Conversion
         "cast",
@@ -912,12 +913,6 @@ class SafeSqlDriver(SqlDriver):
         # Reject SELECT statements with locking clauses
         if isinstance(node, SelectStmt) and getattr(node, "lockingClause", None):
             raise ValueError("Locking clause on select is prohibited")
-
-        # Reject EXPLAIN ANALYZE statements
-        if isinstance(node, ExplainStmt):
-            for option in node.options or []:
-                if isinstance(option, DefElem) and option.defname == "analyze":
-                    raise ValueError("EXPLAIN ANALYZE is not supported")
 
         # Reject CREATE EXTENSION statements
         if isinstance(node, CreateExtensionStmt):

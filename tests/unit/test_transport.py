@@ -127,3 +127,94 @@ async def test_default_transport_is_stdio():
             mock_http.assert_not_called()
     finally:
         sys.argv = original_argv
+
+
+@pytest.mark.asyncio
+async def test_stateless_http_argument_sets_setting():
+    """--stateless-http enables FastMCP's stateless_http setting."""
+    from postgres_mcp.server import main
+    from postgres_mcp.server import mcp
+
+    original_argv = sys.argv
+    try:
+        sys.argv = [
+            "postgres_mcp",
+            "postgresql://user:password@localhost/db",
+            "--transport=streamable-http",
+            "--stateless-http",
+        ]
+
+        with (
+            patch("postgres_mcp.server.db_connection.pool_connect", AsyncMock()),
+            patch("postgres_mcp.server.mcp.run_streamable_http_async", AsyncMock()),
+        ):
+            await main()
+
+            assert mcp.settings.stateless_http is True
+    finally:
+        sys.argv = original_argv
+        mcp.settings.stateless_http = False
+
+
+@pytest.mark.asyncio
+async def test_stateless_http_defaults_to_stateful():
+    """streamable-http stays stateful when --stateless-http is not passed."""
+    from postgres_mcp.server import main
+    from postgres_mcp.server import mcp
+
+    original_argv = sys.argv
+    try:
+        sys.argv = [
+            "postgres_mcp",
+            "postgresql://user:password@localhost/db",
+            "--transport=streamable-http",
+        ]
+
+        with (
+            patch("postgres_mcp.server.db_connection.pool_connect", AsyncMock()),
+            patch("postgres_mcp.server.mcp.run_streamable_http_async", AsyncMock()),
+        ):
+            await main()
+
+            assert mcp.settings.stateless_http is False
+    finally:
+        sys.argv = original_argv
+
+
+def _streamable_http_client(server):
+    """TestClient for streamable-HTTP; Host must be 127.0.0.1 for DNS rebinding."""
+    from starlette.testclient import TestClient
+
+    return TestClient(server.streamable_http_app(), base_url="http://127.0.0.1:8000")
+
+
+def _sessionless_tools_list(client):
+    """POST tools/list with no Mcp-Session-Id and no prior initialize."""
+    return client.post(
+        "/mcp",
+        json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+        headers={"Accept": "application/json, text/event-stream"},
+    )
+
+
+def test_stateless_streamable_http_serves_sessionless_requests():
+    """Stateless mode serves requests that carry no session."""
+    from mcp.server.fastmcp import FastMCP
+
+    server = FastMCP("stateless-contract-test", stateless_http=True)
+    with _streamable_http_client(server) as client:
+        response = _sessionless_tools_list(client)
+
+        assert response.status_code == 200
+
+
+def test_stateful_streamable_http_rejects_sessionless_requests():
+    """Stateful mode rejects the same sessionless request."""
+    from mcp.server.fastmcp import FastMCP
+
+    server = FastMCP("stateful-contract-test", stateless_http=False)
+    with _streamable_http_client(server) as client:
+        response = _sessionless_tools_list(client)
+
+        assert response.status_code == 400
+        assert "session" in response.text.lower()

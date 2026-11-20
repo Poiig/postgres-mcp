@@ -21,12 +21,13 @@
 | `FROM` 子句危险函数绕过 allowlist | [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) | 递归校验 `RangeFunction` 内的 `FuncCall` |
 | 工具失败时 `isError=false` | [issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) | 失败改为抛出 `ToolError`，客户端可见 `isError=true` |
 | restricted 模式无行数上限 | [issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) | `--max-rows`（默认 1000；`0` 表示不限制） |
+| 连接池复用泄漏 session GUC / HypoPG | [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213) / [#203](https://github.com/crystaldba/postgres-mcp/issues/203) | 归还时 `DISCARD ALL` + schema 限定的 `hypopg_reset()` |
+| stdio 孤儿进程长期占连接 | [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177) / [#98](https://github.com/crystaldba/postgres-mcp/issues/98) | `min_size=0` + 孤儿 watchdog；正常退出关池 |
+| restricted 下禁止 `EXPLAIN ANALYZE` | [PR #196](https://github.com/crystaldba/postgres-mcp/pull/196) | 只读语句允许 ANALYZE（写语句仍拦截） |
+| streamable-http 会话内存涨 | [PR #217](https://github.com/crystaldba/postgres-mcp/pull/217) | 可选 `--stateless-http` |
+| allowlist 缺 `timezone()` | [PR #209](https://github.com/crystaldba/postgres-mcp/pull/209) | 已加入 `ALLOWED_FUNCTIONS` |
+| 宽表索引候选过滤过慢 | [PR #240](https://github.com/crystaldba/postgres-mcp/pull/240) | 先按查询条件过滤再做 `_index_exists` |
 | 中文说明 | 无 | 本文档 |
-
-上游仍可关注：
-
-- [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213)：连接归还时清理 session GUC / HypoPG
-- [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177)：连接池生命周期 / 孤儿进程 watchdog
 
 ## 功能概览
 

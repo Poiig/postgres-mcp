@@ -35,12 +35,13 @@ Upstream last shipped a formal release in May 2025. This fork keeps the same pro
 | Dangerous functions in `FROM` bypass allowlist | [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) / [#178](https://github.com/crystaldba/postgres-mcp/issues/178) | Nested `RangeFunction` nodes are validated against `ALLOWED_FUNCTIONS` |
 | Tool failures look like success (`isError=false`) | [Issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) | `format_error_response` raises `ToolError` so clients see `isError=true` |
 | Restricted mode has no row cap | [Issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) | `--max-rows` (default `1000`; `0` = unlimited) truncates oversized results |
+| Pooled connections leak session GUCs / HypoPG state | [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213) / [#203](https://github.com/crystaldba/postgres-mcp/issues/203) | Pool `reset` runs `DISCARD ALL` + schema-qualified `hypopg_reset()` |
+| Orphaned stdio processes pin DB connections | [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177) / [#98](https://github.com/crystaldba/postgres-mcp/issues/98) | `min_size=0` + orphan watchdog; pool closed on clean exit |
+| `EXPLAIN ANALYZE` blocked in restricted mode | [PR #196](https://github.com/crystaldba/postgres-mcp/pull/196) | Allowed for read-only statements (writes still rejected) |
+| Streamable HTTP session memory growth | [PR #217](https://github.com/crystaldba/postgres-mcp/pull/217) | Opt-in `--stateless-http` |
+| `timezone()` missing from allowlist | [PR #209](https://github.com/crystaldba/postgres-mcp/pull/209) | Added to `ALLOWED_FUNCTIONS` |
+| Index candidate filtering too slow on wide tables | [PR #240](https://github.com/crystaldba/postgres-mcp/pull/240) | Filter by query conditions before `_index_exists` |
 | Chinese docs | — | See [README.zh-CN.md](README.zh-CN.md) |
-
-Upstream context still worth tracking:
-
-- [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213) — reset pooled connections / HypoPG leftovers
-- [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177) — connection pool lifecycle / orphan watchdog
 
 ## Overview
 
