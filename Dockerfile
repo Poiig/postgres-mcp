@@ -35,12 +35,12 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
-LABEL org.opencontainers.image.description="Postgres MCP Pro - Multi-architecture container (${TARGETPLATFORM})"
-LABEL org.opencontainers.image.source="https://github.com/Poiig/postgres-mcp-pro"
+LABEL org.opencontainers.image.description="PostgreSQL MCP Pro - Multi-architecture container (${TARGETPLATFORM})"
+LABEL org.opencontainers.image.source="https://github.com/Poiig/postgresql-mcp-pro"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.vendor="Poiig"
-LABEL org.opencontainers.image.title="postgres-mcp-pro"
-LABEL org.opencontainers.image.url="https://github.com/Poiig/postgres-mcp-pro"
+LABEL org.opencontainers.image.title="postgresql-mcp-pro"
+LABEL org.opencontainers.image.url="https://github.com/Poiig/postgresql-mcp-pro"
 
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y \
@@ -58,7 +58,6 @@ USER app
 # Expose HTTP transport port (streamable-http / sse)
 EXPOSE 8000
 
-# Run postgres-mcp-pro
-#   docker run -it --rm -e DATABASE_URI=... ghcr.io/poiig/postgres-mcp-pro
-ENTRYPOINT ["/app/docker-entrypoint.sh", "postgres-mcp-pro"]
+#   docker run -it --rm -e DATABASE_URI=... ghcr.io/poiig/postgresql-mcp-pro
+ENTRYPOINT ["/app/docker-entrypoint.sh", "postgresql-mcp-pro"]
 CMD []

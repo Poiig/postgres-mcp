@@ -1,21 +1,22 @@
 <div align="center">
 
-<img src="assets/postgres-mcp-pro.png" alt="Postgres MCP Pro Logo" width="600"/>
+<img src="assets/postgresql-mcp-pro.png" alt="PostgreSQL MCP Pro Logo" width="600"/>
 
 [中文](README.md) · [English](README.en.md)
 
-<h3>Postgres MCP Pro</h3>
+<h3>PostgreSQL MCP Pro</h3>
 <p>索引调优 · 执行计划 · 健康检查 · 安全 SQL · 运维洞察</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgres-mcp-pro)](https://github.com/Poiig/postgres-mcp-pro/releases)
-[![GHCR](https://img.shields.io/badge/GHCR-postgres--mcp--pro-blue)](https://github.com/Poiig/postgres-mcp-pro/pkgs/container/postgres-mcp-pro)
+[![PyPI](https://img.shields.io/pypi/v/postgresql-mcp-pro)](https://pypi.org/project/postgresql-mcp-pro/)
+[![GitHub Release](https://img.shields.io/github/v/release/Poiig/postgresql-mcp-pro)](https://github.com/Poiig/postgresql-mcp-pro/releases)
+[![GHCR](https://img.shields.io/badge/GHCR-postgresql--mcp--pro-blue)](https://github.com/Poiig/postgresql-mcp-pro/pkgs/container/postgresql-mcp-pro)
 
 </div>
 
 ## 这是什么
 
-**Postgres MCP Pro**（CLI：`postgres-mcp-pro`）是面向 Cursor / Claude 等 MCP 客户端的 PostgreSQL 助手：能查 schema、跑只读 SQL、看执行计划、做健康检查、给索引建议，并补充表体积、冷索引、活动会话、阻塞等运维能力。
+**PostgreSQL MCP Pro**（CLI / PyPI：`postgresql-mcp-pro`）是面向 Cursor / Claude 等 MCP 客户端的 PostgreSQL 助手：能查 schema、跑只读 SQL、看执行计划、做健康检查、给索引建议，并补充表体积、冷索引、活动会话、阻塞等运维能力。
 
 本仓库是 [crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp) 的维护型 fork：默认只读、修好上游依赖坑，并持续合入有价值的修复。
 
@@ -26,10 +27,11 @@
 | 连接更稳 | 归还连接清理 session / HypoPG；stdio 孤儿进程会关池 |
 | 运维工具 | 库总览、体积排行、重复/冷索引、autovacuum、活动会话、阻塞等 |
 
-制品发布在 **GitHub**：
+制品：
 
-- Release：wheel / sdist（打 `v*` tag 自动构建）
-- 镜像：`ghcr.io/poiig/postgres-mcp-pro`
+- **PyPI**：`pip` / `uvx postgresql-mcp-pro`（推荐本机）
+- **GitHub Release**：wheel / sdist
+- **GHCR**：`ghcr.io/poiig/postgresql-mcp-pro`
 
 ---
 
@@ -37,7 +39,7 @@
 
 | 方式 | 适用 | 命令形态 |
 |------|------|----------|
-| **A. uvx / 本地进程（stdio）** | 本机 Cursor，一人一库，最简单 | 客户端拉起 `postgres-mcp-pro` |
+| **A. uvx / 本地进程（stdio）** | 本机 Cursor，一人一库，最简单 | `uvx postgresql-mcp-pro` |
 | **B. Docker（stdio）** | 不想装 Python，本机有 Docker | `docker run -i ...` |
 | **C. HTTP（streamable-http）** | 远程 / 多人共用一个服务 | 常驻进程，客户端连 URL |
 | SSE | 旧客户端兼容 | 仍可用，优先用 C |
@@ -56,9 +58,7 @@
     "postgres": {
       "command": "uvx",
       "args": [
-        "--from",
-        "git+https://github.com/Poiig/postgres-mcp-pro",
-        "postgres-mcp-pro",
+        "postgresql-mcp-pro",
         "--access-mode=restricted"
       ],
       "env": {
@@ -69,18 +69,13 @@
 }
 ```
 
-已安装本仓库时：
+需要写库时把 `--access-mode=restricted` 改成 `--access-mode=unrestricted`。
+
+已克隆本仓库时：
 
 ```bash
 uv sync
-uv run postgres-mcp-pro --access-mode=restricted
-# 或把 DATABASE_URI 写进环境 / .env
-```
-
-从 GitHub Release 装 wheel：
-
-```bash
-uvx --from ./postgres_mcp_pro-0.4.0-py3-none-any.whl postgres-mcp-pro
+uv run postgresql-mcp-pro --access-mode=restricted
 ```
 
 ---
@@ -88,7 +83,7 @@ uvx --from ./postgres_mcp_pro-0.4.0-py3-none-any.whl postgres-mcp-pro
 ## B. 用 Docker（stdio）
 
 ```bash
-docker pull ghcr.io/poiig/postgres-mcp-pro:latest
+docker pull ghcr.io/poiig/postgresql-mcp-pro:latest
 ```
 
 Cursor 配置：
@@ -101,7 +96,7 @@ Cursor 配置：
       "args": [
         "run", "-i", "--rm",
         "-e", "DATABASE_URI",
-        "ghcr.io/poiig/postgres-mcp-pro:latest",
+        "ghcr.io/poiig/postgresql-mcp-pro:latest",
         "--access-mode=restricted"
       ],
       "env": {
@@ -120,7 +115,7 @@ Cursor 配置：
 docker run -i --rm \
   -v /path/to/database-uri:/run/secrets/database-uri:ro \
   -e DATABASE_URI_FILE=/run/secrets/database-uri \
-  ghcr.io/poiig/postgres-mcp-pro:latest --access-mode=restricted
+  ghcr.io/poiig/postgresql-mcp-pro:latest --access-mode=restricted
 ```
 
 ---
@@ -132,7 +127,7 @@ docker run -i --rm \
 ```bash
 docker run --rm -p 8000:8000 \
   -e DATABASE_URI=postgresql://username:password@host:5432/dbname \
-  ghcr.io/poiig/postgres-mcp-pro:latest \
+  ghcr.io/poiig/postgresql-mcp-pro:latest \
   --access-mode=restricted \
   --transport=streamable-http \
   --stateless-http \
@@ -140,83 +135,50 @@ docker run --rm -p 8000:8000 \
   --streamable-http-port=8000
 ```
 
-或：
+本机开发也可用：
 
 ```bash
-uv run postgres-mcp-pro \
+uv run postgresql-mcp-pro \
   --access-mode=restricted \
   --transport=streamable-http \
   --stateless-http \
-  --streamable-http-host=0.0.0.0
+  --streamable-http-host=127.0.0.1 \
+  --streamable-http-port=8000
 ```
 
-`--stateless-http`：不在服务端堆积未 DELETE 的会话，避免内存持续上涨。
-
-客户端（支持 streamable HTTP 的 MCP 客户端）连服务地址即可；具体字段以客户端文档为准（常见为 URL + 传输类型）。
+客户端连 `http://<host>:8000/mcp`（以实际 MCP 客户端要求为准）。
 
 ### SSE（兼容）
 
-旧客户端仍可用 SSE：
-
 ```bash
-uv run postgres-mcp-pro --transport=sse --sse-host=0.0.0.0 --sse-port=8000
+uv run postgresql-mcp-pro --transport=sse --sse-host=0.0.0.0 --sse-port=8000
 ```
 
-```json
-{
-  "mcpServers": {
-    "postgres": {
-      "type": "sse",
-      "url": "http://localhost:8000/sse"
-    }
-  }
-}
-```
-
-新部署优先 **streamable-http + `--stateless-http`**，SSE 仅作兼容。
+新部署优先 **streamable-http + `--stateless-http`**。
 
 ---
 
-## 访问模式
-
-| 模式 | 行为 | 何时用 |
-|------|------|--------|
-| `restricted`（默认） | 只读事务 + SQL 解析校验 + 超时 + 默认最多 1000 行 | 共享库 / 生产只读 |
-| `unrestricted` | 任意 SQL；启动打 `[SECURITY]` 告警 | 仅可信开发库 |
+## 常用参数
 
 ```bash
-# 默认即 restricted；需要写库时：
-uv run postgres-mcp-pro --access-mode=unrestricted
-
-# 调整行数上限（0=不限制）
-uv run postgres-mcp-pro --access-mode=restricted --max-rows=500
+uv run postgresql-mcp-pro --access-mode=unrestricted
+uv run postgresql-mcp-pro --access-mode=restricted --max-rows=500
 ```
 
 ---
 
-## MCP 工具
+## 工具一览（节选）
 
-**基础**
-
-| 工具 | 作用 |
+| 工具 | 说明 |
 |------|------|
-| `list_schemas` / `list_objects` / `get_object_details` | 浏览结构 |
-| `execute_sql` | 执行 SQL（restricted 下只读） |
-| `explain_query` | 执行计划；可叠加假设索引 |
-| `get_top_queries` | 慢查询（`pg_stat_statements`） |
-| `analyze_workload_indexes` / `analyze_query_indexes` | 索引建议 |
-| `analyze_db_health` | 综合健康检查 |
-
-**运维**
-
-| 工具 | 作用 |
-|------|------|
-| `get_database_overview` | 库总览 |
-| `analyze_schema_relationships` | 外键关系 |
-| `list_relation_sizes` | 表体积 TOP |
+| `list_schemas` / `list_objects` / `get_object_details` | 浏览 schema |
+| `execute_sql` | 执行 SQL（restricted 下只读校验） |
+| `explain_query` | 执行计划 |
+| `analyze_db_health` / `analyze_query_indexes` / `analyze_workload_indexes` | 健康与索引 |
+| `get_top_queries` | 慢查询（需 `pg_stat_statements`） |
+| `get_database_overview` / `list_table_sizes` | 库总览 / 体积 |
 | `list_duplicate_indexes` / `list_index_usage` | 重复 / 冷索引 |
-| `get_autovacuum_info` | autovacuum 与死元组 |
-| `get_table_bloat` | 单表膨胀（需 `pgstattuple`） |
+| `get_autovacuum_overview` / `get_table_bloat` | 清理与膨胀 |
 | `list_qual_stats` | 谓词统计（需 `pg_qualstats`） |
 | `list_settings` | 关键参数白名单 |
 | `list_active_queries` / `get_blocking_queries` | 活动会话 / 阻塞 |
@@ -230,14 +192,15 @@ uv run postgres-mcp-pro --access-mode=restricted --max-rows=500
 打 tag 触发 [Release workflow](.github/workflows/release.yml)：
 
 ```bash
-git tag v0.4.0
-git push origin v0.4.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 产出：
 
-- GitHub Release 附件：`postgres_mcp_pro-*.whl` / `.tar.gz`
-- 镜像：`ghcr.io/poiig/postgres-mcp-pro:0.4.0` 与 `:latest`
+- PyPI：`postgresql-mcp-pro`
+- GitHub Release：`postgresql_mcp_pro-*.whl` / `.tar.gz`
+- 镜像：`ghcr.io/poiig/postgresql-mcp-pro:1.0.0` 与 `:latest`
 
 也可在 Actions 里用 `workflow_dispatch` 填版本号手动发版。
 
@@ -247,6 +210,6 @@ git push origin v0.4.0
 
 - 许可证：[MIT](LICENSE)
 - 上游：[crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp)
-- 本仓库：[Poiig/postgres-mcp-pro](https://github.com/Poiig/postgres-mcp-pro)
+- 本仓库：[Poiig/postgresql-mcp-pro](https://github.com/Poiig/postgresql-mcp-pro)
 
 更细的英文说明见 [README.en.md](README.en.md)。

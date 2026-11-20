@@ -41,7 +41,7 @@ from .sql import obfuscate_password
 from .top_queries import TopQueriesCalc
 
 # Initialize FastMCP with default settings
-mcp = FastMCP("postgres-mcp-pro")
+mcp = FastMCP("postgresql-mcp-pro")
 
 # Constants
 PG_STAT_STATEMENTS = "pg_stat_statements"

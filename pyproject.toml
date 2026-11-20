@@ -1,7 +1,7 @@
 [project]
-name = "postgres-mcp-pro"
-version = "0.4.0"
-description = "Postgres MCP Pro: index tuning, explain plans, health checks, and safe SQL"
+name = "postgresql-mcp-pro"
+version = "1.0.0"
+description = "PostgreSQL MCP Pro: index tuning, explain plans, health checks, and safe SQL"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,17 +22,16 @@ name = "poiig"
 email = "poiigzhao@126.com"
 
 [project.urls]
-Homepage = "https://github.com/Poiig/postgres-mcp-pro"
-Repository = "https://github.com/Poiig/postgres-mcp-pro"
-Issues = "https://github.com/Poiig/postgres-mcp-pro/issues"
+Homepage = "https://github.com/Poiig/postgresql-mcp-pro"
+Repository = "https://github.com/Poiig/postgresql-mcp-pro"
+Issues = "https://github.com/Poiig/postgresql-mcp-pro/issues"
 
 [build-system]
 requires = [ "hatchling",]
 build-backend = "hatchling.build"
 
 [project.scripts]
-postgres-mcp-pro = "postgres_mcp:main"
-postgres-mcp = "postgres_mcp:main"
+postgresql-mcp-pro = "postgres_mcp:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/postgres_mcp"]
@@ -94,7 +93,7 @@ convention = "google"
 
 [tool.ruff.lint.isort]
 force-single-line = true
-known-first-party = ["postgres_mcp", "postgres-mcp-pro"]
+known-first-party = ["postgres_mcp", "postgresql-mcp-pro"]
 
 [tool.pyright]
 typeCheckingMode = "standard"

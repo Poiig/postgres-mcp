@@ -16,7 +16,7 @@ release-help:
   @echo "- uv lock && uv sync"
   @echo "- commit and push to main"
   @echo "- git tag vX.Y.Z && git push origin vX.Y.Z"
-  @echo "  (Release workflow builds wheel + pushes ghcr.io/poiig/postgres-mcp-pro)"
+  @echo "  (Release workflow: PyPI + GitHub Release + ghcr.io/poiig/postgresql-mcp-pro)"
 
 release version note: # version without v prefix
   #!/usr/bin/env bash
