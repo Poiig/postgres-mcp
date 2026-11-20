@@ -32,15 +32,15 @@ Upstream last shipped a formal release in May 2025. This fork keeps the same pro
 |-------|-------------------------|-----------|
 | `pglast` yanked from PyPI (`7.2` / `7.11`) breaks install | [crystaldba/postgres-mcp#237](https://github.com/crystaldba/postgres-mcp/issues/237) | Depends on `pglast>=7.20,<8` (resolves to a live 7.x release such as `7.24`) |
 | Default SQL access is read/write | Docs recommend `--access-mode=restricted` | **Default is `restricted`**; unrestricted mode logs a security warning |
+| Dangerous functions in `FROM` bypass allowlist | [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) / [#178](https://github.com/crystaldba/postgres-mcp/issues/178) | Nested `RangeFunction` nodes are validated against `ALLOWED_FUNCTIONS` |
+| Tool failures look like success (`isError=false`) | [Issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) | `format_error_response` raises `ToolError` so clients see `isError=true` |
+| Restricted mode has no row cap | [Issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) | `--max-rows` (default `1000`; `0` = unlimited) truncates oversized results |
 | Chinese docs | — | See [README.zh-CN.md](README.zh-CN.md) |
 
-Upstream context and related open work worth tracking:
+Upstream context still worth tracking:
 
-- [PR #238](https://github.com/crystaldba/postgres-mcp/pull/238) — allow `pglast>=7.20,<8`
-- [PR #193](https://github.com/crystaldba/postgres-mcp/pull/193) — default access mode to restricted
-- [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) — block dangerous functions in `FROM`
-- [Issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) — row-count limits in restricted mode
-- [Issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) — surface SQL failures via `isError`
+- [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213) — reset pooled connections / HypoPG leftovers
+- [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177) — connection pool lifecycle / orphan watchdog
 
 ## Overview
 

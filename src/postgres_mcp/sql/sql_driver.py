@@ -184,6 +184,7 @@ class SqlDriver:
         query: LiteralString,
         params: list[Any] | None = None,
         force_readonly: bool = False,
+        max_rows: int | None = None,
     ) -> Optional[List[RowResult]]:
         """
         Execute a query and return results.
@@ -192,6 +193,7 @@ class SqlDriver:
             query: SQL query to execute
             params: Query parameters
             force_readonly: Whether to enforce read-only mode
+            max_rows: If set, fetch at most max_rows+1 so callers can detect truncation
 
         Returns:
             List of RowResult objects or None on error
@@ -207,10 +209,14 @@ class SqlDriver:
                 # For pools, get a connection from the pool
                 pool = await self.conn.pool_connect()
                 async with pool.connection() as connection:
-                    return await self._execute_with_connection(connection, query, params, force_readonly=force_readonly)
+                    return await self._execute_with_connection(
+                        connection, query, params, force_readonly=force_readonly, max_rows=max_rows
+                    )
             else:
                 # Direct connection approach
-                return await self._execute_with_connection(self.conn, query, params, force_readonly=force_readonly)
+                return await self._execute_with_connection(
+                    self.conn, query, params, force_readonly=force_readonly, max_rows=max_rows
+                )
         except Exception as e:
             # Mark pool as invalid if there was a connection issue
             if self.conn and self.is_pool:
@@ -221,7 +227,9 @@ class SqlDriver:
 
             raise e
 
-    async def _execute_with_connection(self, connection, query, params, force_readonly) -> Optional[List[RowResult]]:
+    async def _execute_with_connection(
+        self, connection, query, params, force_readonly, max_rows: int | None = None
+    ) -> Optional[List[RowResult]]:
         """Execute query with the given connection."""
         transaction_started = False
         try:
@@ -248,8 +256,11 @@ class SqlDriver:
                         transaction_started = False
                     return None
 
-                # Get results from the last statement only
-                rows = await cursor.fetchall()
+                # Cap fetch size in restricted mode so huge results don't fill memory first
+                if max_rows is not None and max_rows >= 0:
+                    rows = await cursor.fetchmany(max_rows + 1)
+                else:
+                    rows = await cursor.fetchall()
 
                 # End the transaction appropriately
                 if not force_readonly:

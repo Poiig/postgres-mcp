@@ -9,10 +9,12 @@ from enum import Enum
 from typing import Any
 from typing import List
 from typing import Literal
+from typing import NoReturn
 from typing import Union
 
 import mcp.types as types
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 from pydantic import validate_call
@@ -56,6 +58,8 @@ class AccessMode(str, Enum):
 # Global variables
 db_connection = DbConnPool()
 current_access_mode = AccessMode.RESTRICTED
+# Restricted-mode row cap; None means unlimited (unrestricted mode)
+current_max_rows: int | None = 1000
 shutdown_in_progress = False
 
 
@@ -65,7 +69,8 @@ async def get_sql_driver() -> Union[SqlDriver, SafeSqlDriver]:
 
     if current_access_mode == AccessMode.RESTRICTED:
         logger.debug("Using SafeSqlDriver with restrictions (RESTRICTED mode)")
-        return SafeSqlDriver(sql_driver=base_driver, timeout=30)  # 30 second timeout
+        # 30s timeout + max_rows keep agent queries from exhausting memory/context
+        return SafeSqlDriver(sql_driver=base_driver, timeout=30, max_rows=current_max_rows)
     else:
         logger.debug("Using unrestricted SqlDriver (UNRESTRICTED mode)")
         return base_driver
@@ -76,9 +81,9 @@ def format_text_response(text: Any) -> ResponseType:
     return [types.TextContent(type="text", text=str(text))]
 
 
-def format_error_response(error: str) -> ResponseType:
-    """Format an error response."""
-    return format_text_response(f"Error: {error}")
+def format_error_response(error: str) -> NoReturn:
+    """Raise so MCP clients see isError=true instead of a successful text reply."""
+    raise ToolError(error)
 
 
 @mcp.tool(
@@ -406,6 +411,8 @@ If there is no hypothetical index, you can pass an empty list.""",
             if isinstance(result, ErrorResult):
                 error_message = result.to_text()
             return format_error_response(error_message)
+    except ToolError:
+        raise
     except Exception as e:
         logger.error(f"Error explaining query: {e}")
         return format_error_response(str(e))
@@ -421,7 +428,24 @@ async def execute_sql(
         rows = await sql_driver.execute_query(sql)  # type: ignore
         if rows is None:
             return format_text_response("No results")
-        return format_text_response(list([r.cells for r in rows]))
+
+        cells = [r.cells for r in rows]
+        max_rows = getattr(sql_driver, "max_rows", None)
+        if max_rows is not None and len(cells) > max_rows:
+            return format_text_response(
+                {
+                    "rows": cells[:max_rows],
+                    "truncated": True,
+                    "max_rows": max_rows,
+                    "message": (
+                        f"Result truncated to {max_rows} rows. "
+                        "Add a LIMIT clause or raise --max-rows if you need more."
+                    ),
+                }
+            )
+        return format_text_response(cells)
+    except ToolError:
+        raise
     except Exception as e:
         logger.error(f"Error executing query: {e}")
         return format_error_response(str(e))
@@ -596,12 +620,24 @@ async def main():
         default=8000,
         help="Port for streamable HTTP server (default: 8000)",
     )
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=1000,
+        help="Max rows returned by execute_sql in restricted mode (default: 1000; use 0 for unlimited)",
+    )
 
     args = parser.parse_args()
 
     # Store the access mode in the global variable
     global current_access_mode
+    global current_max_rows
     current_access_mode = AccessMode(args.access_mode)
+    # 0 means unlimited; unrestricted mode never applies the cap
+    if current_access_mode == AccessMode.RESTRICTED:
+        current_max_rows = None if args.max_rows == 0 else args.max_rows
+    else:
+        current_max_rows = None
 
     # Warn loudly: unrestricted mode accepts any SQL and is prompt-injection sensitive
     if current_access_mode == AccessMode.UNRESTRICTED:

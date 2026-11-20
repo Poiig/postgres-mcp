@@ -865,15 +865,22 @@ class SafeSqlDriver(SqlDriver):
         "postgis_topology",
     }
 
-    def __init__(self, sql_driver: SqlDriver, timeout: float | None = None):
+    def __init__(
+        self,
+        sql_driver: SqlDriver,
+        timeout: float | None = None,
+        max_rows: int | None = 1000,
+    ):
         """Initialize with an underlying SQL driver and optional timeout.
 
         Args:
             sql_driver: The underlying SQL driver to wrap
             timeout: Optional timeout in seconds for query execution
+            max_rows: Cap rows returned in restricted mode; None disables the cap
         """
         self.sql_driver = sql_driver
         self.timeout = timeout
+        self.max_rows = max_rows
 
     def _validate_node(self, node: Node) -> None:
         """Recursively validate a node and all its children"""
@@ -934,12 +941,22 @@ class SafeSqlDriver(SqlDriver):
                 for item in attr:
                     if isinstance(item, Node):
                         self._validate_node(item)
+                    elif isinstance(item, tuple):
+                        # RangeFunction.functions is ((FuncCall, alias), ...);
+                        # recurse so FuncCall names hit ALLOWED_FUNCTIONS
+                        for inner in item:
+                            if isinstance(inner, Node):
+                                self._validate_node(inner)
 
             # Handle tuples of nodes
             elif isinstance(attr, tuple):
                 for item in attr:
                     if isinstance(item, Node):
                         self._validate_node(item)
+                    elif isinstance(item, tuple):
+                        for inner in item:
+                            if isinstance(inner, Node):
+                                self._validate_node(inner)
 
             # Handle single nodes
             elif isinstance(attr, Node):
@@ -994,6 +1011,7 @@ class SafeSqlDriver(SqlDriver):
                         f"/* crystaldba */ {query}",
                         params=params,
                         force_readonly=True,
+                        max_rows=self.max_rows,
                     )
             except asyncio.TimeoutError as e:
                 logger.warning(f"Query execution timed out after {self.timeout} seconds: {query[:100]}...")
@@ -1009,6 +1027,7 @@ class SafeSqlDriver(SqlDriver):
                 f"/* crystaldba */ {query}",
                 params=params,
                 force_readonly=True,
+                max_rows=self.max_rows,
             )
 
     @staticmethod

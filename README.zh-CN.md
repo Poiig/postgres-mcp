@@ -18,15 +18,15 @@
 |------|------|---------|
 | `pglast` `7.2` / `7.11` 已从 PyPI 下架，安装失败或回退到 `0.1.0` | [issue #237](https://github.com/crystaldba/postgres-mcp/issues/237) | 依赖改为 `pglast>=7.20,<8`（当前会解析到可用的 7.x，如 `7.24`） |
 | 默认可读写，容易误伤生产库 | 文档建议手动加 `--access-mode=restricted` | **默认 `restricted`**；`unrestricted` 启动会打安全告警 |
+| `FROM` 子句危险函数绕过 allowlist | [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200) | 递归校验 `RangeFunction` 内的 `FuncCall` |
+| 工具失败时 `isError=false` | [issue #244](https://github.com/crystaldba/postgres-mcp/issues/244) | 失败改为抛出 `ToolError`，客户端可见 `isError=true` |
+| restricted 模式无行数上限 | [issue #243](https://github.com/crystaldba/postgres-mcp/issues/243) | `--max-rows`（默认 1000；`0` 表示不限制） |
 | 中文说明 | 无 | 本文档 |
 
-上游仍可关注的相关改动：
+上游仍可关注：
 
-- [PR #238](https://github.com/crystaldba/postgres-mcp/pull/238)：放开 `pglast>=7.20,<8`
-- [PR #193](https://github.com/crystaldba/postgres-mcp/pull/193)：默认改为 restricted
-- [PR #200](https://github.com/crystaldba/postgres-mcp/pull/200)：限制 `FROM` 中的危险函数
-- [Issue #243](https://github.com/crystaldba/postgres-mcp/issues/243)：restricted 模式行数上限
-- [Issue #244](https://github.com/crystaldba/postgres-mcp/issues/244)：SQL 失败应正确标记 `isError`
+- [PR #213](https://github.com/crystaldba/postgres-mcp/pull/213)：连接归还时清理 session GUC / HypoPG
+- [PR #177](https://github.com/crystaldba/postgres-mcp/pull/177)：连接池生命周期 / 孤儿进程 watchdog
 
 ## 功能概览
 
@@ -115,10 +115,18 @@ uv run postgres-mcp "postgres://user:password@localhost:5432/dbname" --access-mo
 
 | 模式 | 行为 | 适用场景 |
 |------|------|----------|
-| `restricted`（默认） | 只读事务 + SQL 安全解析 + 执行超时 | 共享库、生产只读排查、默认推荐 |
-| `unrestricted` | 可执行任意 SQL（含 DDL/DML） | 仅可信开发库；启动会打 `[SECURITY]` 告警 |
+| `restricted`（默认） | 只读事务 + SQL 安全解析 + 执行超时 + 默认最多返回 1000 行 | 共享库、生产只读排查、默认推荐 |
+| `unrestricted` | 可执行任意 SQL（含 DDL/DML）；无行数上限 | 仅可信开发库；启动会打 `[SECURITY]` 告警 |
 
 Agent 读到的网页、工单、邮件内容可能带提示注入；在 `unrestricted` 下这些内容可能直接驱动 `execute_sql`，因此默认不要开可写。
+
+行数上限示例：
+
+```bash
+uv run postgres-mcp "$DATABASE_URI" --access-mode=restricted --max-rows=1000
+# 不限制（仅在明确需要时）：
+uv run postgres-mcp "$DATABASE_URI" --access-mode=restricted --max-rows=0
+```
 
 ## 可选扩展
 
