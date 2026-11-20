@@ -16,7 +16,7 @@
 
 ## 这是什么
 
-**PostgreSQL MCP Pro**（CLI / PyPI：`postgresql-mcp-pro`）是面向 Cursor / Claude 等 MCP 客户端的 PostgreSQL 助手：能查 schema、跑只读 SQL、看执行计划、做健康检查、给索引建议，并补充表体积、冷索引、活动会话、阻塞等运维能力。
+**PostgreSQL MCP Pro**（CLI / PyPI / Docker：`postgresql-mcp-pro`）是面向 Cursor / Claude 等 MCP 客户端的 PostgreSQL 助手：能查 schema、跑只读 SQL、看执行计划、做健康检查、给索引建议，并补充表体积、冷索引、活动会话、阻塞等运维能力。
 
 本仓库是 [crystaldba/postgres-mcp](https://github.com/crystaldba/postgres-mcp) 的维护型 fork：默认只读、修好上游依赖坑，并持续合入有价值的修复。
 
@@ -29,9 +29,22 @@
 
 制品：
 
-- **PyPI**：`pip` / `uvx postgresql-mcp-pro`（推荐本机）
+- **PyPI**：`postgresql-mcp-pro`（本机推荐 `uvx`）
 - **GitHub Release**：wheel / sdist
 - **GHCR**：`ghcr.io/poiig/postgresql-mcp-pro`
+
+---
+
+## `uv` 和 `uvx` 是什么关系
+
+两者都来自同一套工具 [uv](https://docs.astral.sh/uv/)（macOS / Linux / Windows 都一样）：
+
+| 命令 | 含义 | 何时用 |
+|------|------|--------|
+| `uvx postgresql-mcp-pro` | 从 **PyPI** 拉包并直接跑（`uv tool run` 的快捷写法） | **没克隆仓库**的本机 Cursor，最省事 |
+| `uv run postgresql-mcp-pro` | 在 **本仓库** 里用本地依赖跑入口 | 已 `git clone` + `uv sync`，改代码边测 |
+
+所以：机器上装的是 **`uv`**；README 里给终端用户的默认接入是 **`uvx`**（不强制克隆）。开发本仓库时用 **`uv run`**（你项目里的 `.cursor/mcp.json` 就是这种）。
 
 ---
 
@@ -39,16 +52,17 @@
 
 | 方式 | 适用 | 命令形态 |
 |------|------|----------|
-| **A. uvx / 本地进程（stdio）** | 本机 Cursor，一人一库，最简单 | `uvx postgresql-mcp-pro` |
+| **A. uvx（stdio）** | 本机 Cursor，一人一库，未克隆本仓 | `uvx postgresql-mcp-pro` |
+| **A′. uv run（stdio）** | 已克隆本仓做开发/联调 | `uv run postgresql-mcp-pro` |
 | **B. Docker（stdio）** | 不想装 Python，本机有 Docker | `docker run -i ...` |
 | **C. HTTP（streamable-http）** | 远程 / 多人共用一个服务 | 常驻进程，客户端连 URL |
 | SSE | 旧客户端兼容 | 仍可用，优先用 C |
 
-本机日常开发推荐 **A**；集中部署推荐 **C**（并加 `--stateless-http`）。
+本机日常用 **A**；改本仓代码用 **A′**；集中部署用 **C**（并加 `--stateless-http`）。
 
 ---
 
-## A. 用 uvx（推荐本机）
+## A. 用 uvx（推荐本机，不克隆仓库）
 
 先安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，再在 Cursor `mcp.json`：
 
@@ -71,11 +85,31 @@
 
 需要写库时把 `--access-mode=restricted` 改成 `--access-mode=unrestricted`。
 
-已克隆本仓库时：
+### A′. 已克隆本仓库（开发联调）
 
 ```bash
 uv sync
 uv run postgresql-mcp-pro --access-mode=restricted
+```
+
+项目级 Cursor 配置示例（`.cursor/mcp.json`，含密钥时勿提交）：
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "uv",
+      "args": [
+        "run",
+        "postgresql-mcp-pro",
+        "--access-mode=unrestricted"
+      ],
+      "env": {
+        "DATABASE_URI": "postgresql://username:password@localhost:5432/dbname"
+      }
+    }
+  }
+}
 ```
 
 ---
@@ -161,8 +195,8 @@ uv run postgresql-mcp-pro --transport=sse --sse-host=0.0.0.0 --sse-port=8000
 ## 常用参数
 
 ```bash
-uv run postgresql-mcp-pro --access-mode=unrestricted
-uv run postgresql-mcp-pro --access-mode=restricted --max-rows=500
+uvx postgresql-mcp-pro --access-mode=unrestricted
+uvx postgresql-mcp-pro --access-mode=restricted --max-rows=500
 ```
 
 ---
@@ -176,14 +210,15 @@ uv run postgresql-mcp-pro --access-mode=restricted --max-rows=500
 | `explain_query` | 执行计划 |
 | `analyze_db_health` / `analyze_query_indexes` / `analyze_workload_indexes` | 健康与索引 |
 | `get_top_queries` | 慢查询（需 `pg_stat_statements`） |
-| `get_database_overview` / `list_table_sizes` | 库总览 / 体积 |
+| `get_database_overview` / `list_relation_sizes` | 库总览 / 体积 |
 | `list_duplicate_indexes` / `list_index_usage` | 重复 / 冷索引 |
-| `get_autovacuum_overview` / `get_table_bloat` | 清理与膨胀 |
+| `get_autovacuum_info` / `get_table_bloat` | 清理与膨胀 |
+| `analyze_schema_relationships` | 外键关系摘要 |
 | `list_qual_stats` | 谓词统计（需 `pg_qualstats`） |
 | `list_settings` | 关键参数白名单 |
 | `list_active_queries` / `get_blocking_queries` | 活动会话 / 阻塞 |
 
-建议扩展：`pg_stat_statements`、`hypopg`（索引推演）。
+建议扩展：`pg_stat_statements`、`hypopg`（索引推演）；膨胀统计还需 `pgstattuple`。
 
 ---
 

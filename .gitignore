@@ -130,6 +130,9 @@ celerybeat.pid
 # Environments
 .env
 .venv
+
+# Project MCP config may contain DB credentials
+.cursor/mcp.json
 env/
 venv/
 ENV/
