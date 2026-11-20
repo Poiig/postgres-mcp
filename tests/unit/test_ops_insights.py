@@ -3,11 +3,13 @@
 from typing import Any
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from postgres_mcp.catalog_facts import facts_summary
 from postgres_mcp.ops_insights import OpsInsights
+from postgres_mcp.sql import SafeSqlDriver
 
 
 class _Row:
@@ -54,21 +56,23 @@ async def test_list_settings_intersects_whitelist():
 @pytest.mark.asyncio
 async def test_list_duplicate_indexes_exact_mode():
     driver = MagicMock()
-    from postgres_mcp.sql import SafeSqlDriver
-
-    SafeSqlDriver.execute_param_query = AsyncMock(  # type: ignore[method-assign]
-        return_value=[
-            _Row(
-                {
-                    "table": "public.orders",
-                    "indexes": ["orders_a", "orders_b"],
-                    "definitions": ["CREATE INDEX ...", "CREATE INDEX ..."],
-                    "dup_count": 2,
-                }
-            )
-        ]
-    )
-    data = await OpsInsights(driver).list_duplicate_indexes(schema_name="public", match="exact", limit=10)
+    with patch.object(
+        SafeSqlDriver,
+        "execute_param_query",
+        new=AsyncMock(
+            return_value=[
+                _Row(
+                    {
+                        "table": "public.orders",
+                        "indexes": ["orders_a", "orders_b"],
+                        "definitions": ["CREATE INDEX ...", "CREATE INDEX ..."],
+                        "dup_count": 2,
+                    }
+                )
+            ]
+        ),
+    ):
+        data = await OpsInsights(driver).list_duplicate_indexes(schema_name="public", match="exact", limit=10)
     assert data["count"] == 1
     assert data["duplicates"][0]["dup_count"] == 2
 
@@ -77,22 +81,24 @@ async def test_list_duplicate_indexes_exact_mode():
 async def test_get_table_bloat_extension_gate():
     driver = MagicMock()
     insights = OpsInsights(driver)
-    insights._extension_gate = AsyncMock(  # type: ignore[method-assign]
-        return_value={
-            "error": "extension_required:pgstattuple",
-            "extension": "pgstattuple",
-            "message": "need pgstattuple",
-        }
-    )
-    data = await insights.get_table_bloat("public", "orders")
+    with patch.object(
+        insights,
+        "_extension_gate",
+        new=AsyncMock(
+            return_value={
+                "error": "extension_required:pgstattuple",
+                "extension": "pgstattuple",
+                "message": "need pgstattuple",
+            }
+        ),
+    ):
+        data = await insights.get_table_bloat("public", "orders")
     assert data["error"] == "extension_required:pgstattuple"
 
 
 @pytest.mark.asyncio
 async def test_list_active_queries_builds_running_filter():
     driver = MagicMock()
-    from postgres_mcp.sql import SafeSqlDriver
-
     captured: dict[str, Any] = {}
 
     async def capture(sql_driver, query, params=None):
@@ -100,8 +106,8 @@ async def test_list_active_queries_builds_running_filter():
         captured["params"] = params
         return []
 
-    SafeSqlDriver.execute_param_query = AsyncMock(side_effect=capture)  # type: ignore[method-assign]
-    await OpsInsights(driver).list_active_queries(mode="running", min_duration_seconds=1.5, limit=10)
+    with patch.object(SafeSqlDriver, "execute_param_query", new=AsyncMock(side_effect=capture)):
+        await OpsInsights(driver).list_active_queries(mode="running", min_duration_seconds=1.5, limit=10)
     assert "state = 'active'" in captured["query"]
     assert "wait_event IS NULL" in captured["query"]
     assert captured["params"] == [1.5, 10]
