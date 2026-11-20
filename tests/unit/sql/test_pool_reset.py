@@ -161,7 +161,7 @@ async def test_failed_reset_discards_pooled_connection():
     try:
         await pool._reset_connection(fake)  # type: ignore[attr-defined]
         assert closed == [fake]
-        assert fake._pool is None
+        assert fake._pool is None  # type: ignore[attr-defined]
     finally:
         await pool.close()
 
@@ -176,6 +176,7 @@ async def test_session_guc_does_not_leak_across_checkouts():
         assert rows
         return rows[0].cells
 
+    assert DATABASE_URI is not None
     pool = DbConnPool(DATABASE_URI)
     raw_pool = AsyncConnectionPool(
         conninfo=DATABASE_URI,
@@ -186,7 +187,7 @@ async def test_session_guc_does_not_leak_across_checkouts():
     )
     await raw_pool.open()
     await raw_pool.wait()
-    pool.pool = raw_pool
+    pool.pool = raw_pool  # type: ignore[assignment]
     pool._is_valid = True  # type: ignore[attr-defined]
     driver = SqlDriver(conn=pool)
     try:
@@ -229,6 +230,7 @@ async def test_hypopg_state_does_not_leak_across_checkouts():
         assert rows
         return rows[0].cells
 
+    assert DATABASE_URI is not None
     pool = DbConnPool(DATABASE_URI)
     raw_pool = AsyncConnectionPool(
         conninfo=DATABASE_URI,
@@ -239,7 +241,7 @@ async def test_hypopg_state_does_not_leak_across_checkouts():
     )
     await raw_pool.open()
     await raw_pool.wait()
-    pool.pool = raw_pool
+    pool.pool = raw_pool  # type: ignore[assignment]
     pool._is_valid = True  # type: ignore[attr-defined]
     driver = SqlDriver(conn=pool)
     try:
@@ -250,14 +252,11 @@ async def test_hypopg_state_does_not_leak_across_checkouts():
         if not installed["installed"]:
             pytest.skip("HypoPG is not installed")
 
-        await driver.execute_query("SELECT hypopg_reset(); SELECT hypopg_create_index('CREATE INDEX ON pg_class (relname)')")
+        await driver.execute_query("SELECT hypopg_reset(); SELECT hypopg_create_index('CREATE INDEX ON pg_class (relname)')")  # type: ignore[arg-type]
         after = await first_row(driver, "SELECT count(*) AS count FROM hypopg_list_indexes()")
         assert int(after["count"]) == 0
     finally:
-        try:
-            await driver.execute_query("SELECT hypopg_reset()")
-        finally:
-            await pool.close()
+        await pool.close()
 
 
 @pytest.mark.asyncio
@@ -268,6 +267,7 @@ async def test_failed_reset_replaces_backend_when_database_available():
     async def boom(conn: Any) -> None:
         raise RuntimeError("intentional reset failure")
 
+    assert DATABASE_URI is not None
     raw_pool = AsyncConnectionPool(
         conninfo=DATABASE_URI,
         min_size=1,

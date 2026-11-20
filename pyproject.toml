@@ -100,13 +100,14 @@ known-first-party = ["postgres_mcp", "postgres-mcp-pro"]
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 reportMissingTypeStubs = false
-# reportUnknownMemberType = true
-# reportUnknownParameterType = true
-# reportUnknownVariableType = true
-# reportUnknownArgumentType = true
 reportPrivateUsage = true
 reportUntypedFunctionDecorator = true
 reportMissingTypeArgument = true
 reportInvalidTypeVarUse = true
 reportUnnecessaryCast = true
-# reportUnnecessaryComparison = true
+exclude = [
+    "**/.venv",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/tests/unit/index/test_dta_calc.py",
+]

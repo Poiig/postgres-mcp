@@ -1,5 +1,6 @@
 """Unit tests for ops insights helpers."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 
@@ -92,7 +93,7 @@ async def test_list_active_queries_builds_running_filter():
     driver = MagicMock()
     from postgres_mcp.sql import SafeSqlDriver
 
-    captured: dict = {}
+    captured: dict[str, Any] = {}
 
     async def capture(sql_driver, query, params=None):
         captured["query"] = query

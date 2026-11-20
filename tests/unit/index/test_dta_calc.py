@@ -1153,8 +1153,11 @@ async def test_enumerate_greedy_pareto_cost_benefit(async_sql_driver):
     # Call _enumerate_greedy with cost/benefit analysis
     current_indexes = set()
     current_cost = base_cost
-    final_indexes, final_cost = await dta._enumerate_greedy(  # type: ignore
-        queries, current_indexes, current_cost, candidate_indexes.copy()
+    final_indexes, final_cost = await dta._enumerate_greedy(
+        queries,  # type: ignore[arg-type]
+        current_indexes,
+        current_cost,
+        candidate_indexes.copy(),
     )
 
     # We expect exactly 3 indexes to be selected with 5% threshold
@@ -1166,8 +1169,11 @@ async def test_enumerate_greedy_pareto_cost_benefit(async_sql_driver):
 
     current_indexes = set()
     current_cost = base_cost
-    final_indexes_lower_threshold, final_cost_lower_threshold = await dta._enumerate_greedy(  # type: ignore
-        queries, current_indexes, current_cost, candidate_indexes.copy()
+    final_indexes_lower_threshold, final_cost_lower_threshold = await dta._enumerate_greedy(
+        queries,  # type: ignore[arg-type]
+        current_indexes,
+        current_cost,
+        candidate_indexes.copy(),
     )
 
     # With 1% threshold, should include at least 3 indexes
@@ -1178,8 +1184,11 @@ async def test_enumerate_greedy_pareto_cost_benefit(async_sql_driver):
 
     current_indexes = set()
     current_cost = base_cost
-    final_indexes_higher_threshold, final_cost_higher_threshold = await dta._enumerate_greedy(  # type: ignore
-        queries, current_indexes, current_cost, candidate_indexes.copy()
+    final_indexes_higher_threshold, final_cost_higher_threshold = await dta._enumerate_greedy(
+        queries,  # type: ignore[arg-type]
+        current_indexes,
+        current_cost,
+        candidate_indexes.copy(),
     )
 
     # With 25% threshold, should include only the first 1 index

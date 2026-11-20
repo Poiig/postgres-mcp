@@ -1001,19 +1001,21 @@ class SafeSqlDriver(SqlDriver):
         query: LiteralString,
         params: list[Any] | None = None,
         force_readonly: bool = True,  # do not use value passed in
+        max_rows: int | None = None,
     ) -> Optional[list[SqlDriver.RowResult]]:  # noqa: UP007
         """Execute a query after validating it is safe"""
         self._validate(query)
+        row_cap = self.max_rows if max_rows is None else max_rows
 
         # NOTE: Always force readonly=True in SafeSqlDriver regardless of what was passed
         if self.timeout:
             try:
                 async with asyncio.timeout(self.timeout):
                     return await self.sql_driver.execute_query(
-                        f"/* crystaldba */ {query}",
+                        f"/* crystaldba */ {query}",  # type: ignore[arg-type]
                         params=params,
                         force_readonly=True,
-                        max_rows=self.max_rows,
+                        max_rows=row_cap,
                     )
             except asyncio.TimeoutError as e:
                 logger.warning(f"Query execution timed out after {self.timeout} seconds: {query[:100]}...")
@@ -1026,10 +1028,10 @@ class SafeSqlDriver(SqlDriver):
                 raise
         else:
             return await self.sql_driver.execute_query(
-                f"/* crystaldba */ {query}",
+                f"/* crystaldba */ {query}",  # type: ignore[arg-type]
                 params=params,
                 force_readonly=True,
-                max_rows=self.max_rows,
+                max_rows=row_cap,
             )
 
     @staticmethod

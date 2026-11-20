@@ -28,7 +28,7 @@ async def test_execute_sql_truncates_oversized_result():
     with patch("postgres_mcp.server.get_sql_driver", AsyncMock(return_value=mock_driver)):
         result = await execute_sql("SELECT id FROM t")
 
-    text = result[0].text
+    text = result[0].text  # type: ignore[union-attr]
     assert "truncated" in text
     assert "max_rows" in text
     assert "3" in text

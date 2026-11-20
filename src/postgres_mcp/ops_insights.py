@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 from typing import Literal
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from .sql import SafeSqlDriver
 from .sql import SqlDriver
@@ -89,7 +92,9 @@ class OpsInsights:
         params.append(lim)
         rows = await SafeSqlDriver.execute_param_query(
             self.sql_driver,
-            f"""
+            cast(
+                LiteralString,
+                f"""
             SELECT
                 n.nspname AS schema,
                 c.relname AS table,
@@ -106,6 +111,7 @@ class OpsInsights:
             ORDER BY pg_total_relation_size(c.oid) DESC
             LIMIT {{}}
             """,
+            ),
             params,
         )
         out: dict[str, Any] = {
@@ -114,7 +120,9 @@ class OpsInsights:
         }
         if include_databases:
             dbs = await self.sql_driver.execute_query(
-                """
+                cast(
+                    LiteralString,
+                    """
                 SELECT
                     d.datname AS database,
                     pg_catalog.pg_get_userbyid(d.datdba) AS owner,
@@ -128,7 +136,8 @@ class OpsInsights:
                 WHERE d.datname NOT IN ('template0', 'template1')
                 ORDER BY size_bytes DESC NULLS LAST
                 LIMIT 51
-                """
+                """,
+                )
             )
             db_rows = [dict(r.cells) for r in (dbs or [])]
             # Fetch one extra row so we can tell a full page from truncation.
@@ -149,7 +158,9 @@ class OpsInsights:
             # indkey[0]=0 means an expression column; skip those for leading match.
             rows = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                """
+                cast(
+                    LiteralString,
+                    """
                 SELECT
                     n.nspname || '.' || t.relname AS table,
                     array_agg(i.relname ORDER BY i.relname) AS indexes,
@@ -167,13 +178,16 @@ class OpsInsights:
                 ORDER BY n.nspname, t.relname
                 LIMIT {}
                 """,
+                ),
                 [schema, lim],
             )
         else:
             # Exact match: opclass + columns + expressions + predicate.
             rows = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                """
+                cast(
+                    LiteralString,
+                    """
                 SELECT
                     n.nspname || '.' || t.relname AS table,
                     array_agg(i.relname ORDER BY i.relname) AS indexes,
@@ -196,6 +210,7 @@ class OpsInsights:
                 ORDER BY n.nspname, t.relname
                 LIMIT {}
                 """,
+                ),
                 [schema, lim],
             )
         items = [dict(r.cells) for r in (rows or [])]
@@ -218,12 +233,15 @@ class OpsInsights:
         ratio = max(0.0, min(float(dead_ratio), 1.0))
         min_t = max(0, int(min_tuples))
         settings = await self.sql_driver.execute_query(
-            """
+            cast(
+                LiteralString,
+                """
             SELECT name, setting, unit, short_desc, context, source
             FROM pg_settings
             WHERE name LIKE 'autovacuum%' OR name IN ('maintenance_work_mem')
             ORDER BY name
-            """
+            """,
+            )
         )
         where = ["schemaname NOT IN ('pg_catalog', 'information_schema')"]
         hot_params: list[Any] = []
@@ -233,7 +251,9 @@ class OpsInsights:
         hot_params.extend([min_t, ratio, lim])
         hot = await SafeSqlDriver.execute_param_query(
             self.sql_driver,
-            f"""
+            cast(
+                LiteralString,
+                f"""
             SELECT
                 schemaname AS schema,
                 relname AS table,
@@ -257,6 +277,7 @@ class OpsInsights:
             ORDER BY n_dead_tup DESC
             LIMIT {{}}
             """,
+            ),
             hot_params,
         )
         recent_params: list[Any] = []
@@ -281,7 +302,7 @@ class OpsInsights:
               {recent_schema}
             ORDER BY last_autovacuum DESC NULLS LAST
             LIMIT {{}}
-            """,
+            """,  # type: ignore[arg-type]
             recent_params,
         )
         return {
@@ -318,7 +339,7 @@ class OpsInsights:
                 quote_ident({{}}) || '.' || quote_ident({{}}) AS relation,
                 s.*
             FROM {fn}((quote_ident({{}}) || '.' || quote_ident({{}}))::regclass) AS s
-            """,
+            """,  # type: ignore[arg-type]
             [schema_name, table_name, schema_name, table_name],
         )
         if not rows:
@@ -362,7 +383,9 @@ class OpsInsights:
         try:
             adv = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                """
+                cast(
+                    LiteralString,
+                    """
                 SELECT v::text AS suggestion
                 FROM json_array_elements(
                     pg_qualstats_index_advisor(min_filter => {})->'indexes'
@@ -370,6 +393,7 @@ class OpsInsights:
                 ORDER BY v::text
                 LIMIT {}
                 """,
+                ),
                 [min_f, lim],
             )
             advisors = [dict(r.cells) for r in (adv or [])]
@@ -400,12 +424,15 @@ class OpsInsights:
         # Names come from the whitelist only, never free-form SQL.
         in_list = ", ".join("'" + n.replace("'", "''") + "'" for n in wanted)
         rows = await self.sql_driver.execute_query(
-            f"""
+            cast(
+                LiteralString,
+                f"""
             SELECT name, setting, unit, short_desc, context, source, pending_restart
             FROM pg_settings
             WHERE name IN ({in_list})
             ORDER BY name
-            """
+            """,
+            )
         )
         return {
             "count": len(rows or []),
@@ -443,7 +470,9 @@ class OpsInsights:
         params.append(lim)
         rows = await SafeSqlDriver.execute_param_query(
             self.sql_driver,
-            f"""
+            cast(
+                LiteralString,
+                f"""
             SELECT
                 ui.schemaname AS schema,
                 ui.relname AS table,
@@ -469,11 +498,14 @@ class OpsInsights:
             ORDER BY ui.idx_scan ASC, pg_relation_size(ui.indexrelid) DESC, ui.indexrelname
             LIMIT {{}}
             """,
+            ),
             params,
         )
         items = [dict(r.cells) for r in (rows or [])]
         ctx_rows = await self.sql_driver.execute_query(
-            """
+            cast(
+                LiteralString,
+                """
             SELECT
               (SELECT stats_reset FROM pg_stat_database WHERE datname = current_database()) AS stats_reset,
               (SELECT COUNT(*) FROM pg_stat_user_indexes) AS user_index_count,
@@ -481,7 +513,8 @@ class OpsInsights:
               (SELECT COUNT(*) FROM pg_stat_user_tables) AS user_table_count,
               (SELECT COUNT(*) FROM pg_stat_user_tables
                WHERE COALESCE(seq_scan, 0) + COALESCE(idx_scan, 0) = 0) AS never_accessed_table_count
-            """
+            """,
+            )
         )
         stats_ctx = dict(ctx_rows[0].cells) if ctx_rows else {}
         return {
@@ -526,7 +559,9 @@ class OpsInsights:
         params.append(lim)
         rows = await SafeSqlDriver.execute_param_query(
             self.sql_driver,
-            f"""
+            cast(
+                LiteralString,
+                f"""
             SELECT pid, usename, application_name, client_addr::text AS client,
                    state, wait_event_type, wait_event,
                    ROUND(EXTRACT(EPOCH FROM (now() - query_start))::numeric, 2) AS last_query_age_sec,
@@ -536,6 +571,7 @@ class OpsInsights:
             ORDER BY query_start NULLS LAST
             LIMIT {{}}
             """,
+            ),
             params,
         )
         items = [dict(r.cells) for r in (rows or [])]
@@ -552,7 +588,9 @@ class OpsInsights:
     async def get_blocking_queries(self) -> dict[str, Any]:
         """Current blocked/blocking pairs via pg_blocking_pids (slim snapshot)."""
         rows = await self.sql_driver.execute_query(
-            """
+            cast(
+                LiteralString,
+                """
             SELECT
                 blocked.pid AS blocked_pid,
                 blocked.usename AS blocked_user,
@@ -572,7 +610,8 @@ class OpsInsights:
             WHERE blocked.datname = current_database()
             ORDER BY blocked.query_start NULLS LAST
             LIMIT 100
-            """
+            """,
+            )
         )
         items = [dict(r.cells) for r in (rows or [])]
         return {
